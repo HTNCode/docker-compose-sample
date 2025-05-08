@@ -13,13 +13,17 @@ WORKDIR /app
 # Poetryのインストール
 RUN pip install --no-cache-dir poetry
 
+# バックエンドのソースコードをコピー(.dockerignoreでbackend/.envを含めないようにすることを忘れずに！)
+COPY backend/ .
+
 # 依存関係のインストール (仮想環境内)
-COPY backend/pyproject.toml ./
 RUN poetry lock
 RUN poetry install --no-root --without dev
 
-# バックエンドのソースコードをコピー
-COPY backend/ .
+# HuggingFaceからモデルをダウンロードするスクリプトを実行
+RUN --mount=type=secret,id=hf_token \
+    export HF_TOKEN=$(cat /run/secrets/hf_token) && \
+    poetry run python ./models/create_llm.py
 
 # フロントエンドのビルド済みファイルをコピー
 COPY --from=frontend-builder /app/frontend/build ./frontend/build

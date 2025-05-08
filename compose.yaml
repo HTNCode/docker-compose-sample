@@ -4,7 +4,15 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      secrets:
+        - hf_token
     ports:
       - "5000:5000"
+    env_file:
+      - ./backend/.env
     environment:
       - FLASK_APP=backend/main.py
+
+secrets:
+  hf_token:
+    file: ./backend/.env
