@@ -2,7 +2,7 @@
 FROM node:24-bookworm-slim AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm install
+RUN npm audit fix
 COPY frontend/ .
 RUN npm run build
 
@@ -13,12 +13,12 @@ WORKDIR /app
 # Poetryのインストール
 RUN pip install --no-cache-dir poetry
 
-# バックエンドのソースコードをコピー(.dockerignoreでbackend/.envを含めないようにすることを忘れずに！)
+# バックエンドのソースコードをコピー(.dockerignoreでbackend/hf_token.txtや.envを含めないようにすることを忘れずに！)
 COPY backend/ .
 
 # 依存関係のインストール (仮想環境内)
 RUN poetry lock
-RUN poetry install --no-root --without dev
+RUN poetry install --no-root
 
 # HuggingFaceからモデルをダウンロードするスクリプトを実行
 RUN --mount=type=secret,id=hf_token \
@@ -26,7 +26,9 @@ RUN --mount=type=secret,id=hf_token \
     poetry run python ./models/create_llm.py
 
 # フロントエンドのビルド済みファイルをコピー
-COPY --from=frontend-builder /app/frontend/build ./frontend/build
+# COPY --from=frontend-builder /app/frontend/build ./frontend/build
+# Viteを使っている場合はこっち（create-react-appが非推奨になったため）
+COPY --from=frontend-builder /app/frontend/dist ./frontend/build
 
 EXPOSE 5000
 
